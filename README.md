@@ -1,227 +1,215 @@
-# My Service - Flask REST API
+# Insurance Claims Processing Backend
 
-A Flask-based REST API service with user authentication and CRUD operations.
+A Flask-based backend system for automated insurance claims processing with OCR capabilities, policy validation, and asynchronous task processing.
 
 ## Prerequisites
 
-Before running this project, ensure you have the following installed:
+- **Python**: 3.9+
+- **PostgreSQL**: 14+
+- **Redis**: 6+
+- **Tesseract OCR**: 4.0+
+- **Poppler**: (for PDF processing)
 
-- **Python 3.10** or higher
-- **pip** (Python package installer)
-- **virtualenv** (recommended for creating isolated Python environments)
 
-### Installing Prerequisites
+## Quick Start
 
-#### Python 3.10
-- **macOS**: 
-  ```bash
-  brew install python@3.10
-  ```
-- **Ubuntu/Debian**:
-  ```bash
-  sudo apt update
-  sudo apt install python3.10 python3.10-venv python3-pip
-  ```
-- **Windows**: Download from [python.org](https://www.python.org/downloads/)
+### 1. Clone and Setup Environment
 
-#### virtualenv
 ```bash
-pip install virtualenv
+cd Backend
+python -m venv venv
+
+# Activate virtual environment
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
+
+pip install -r requirements.txt
 ```
+
+### 2. Configure Environment
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your configuration:
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/test
+CELERY_BROKER_URL=redis://localhost:6379/0
+SECRET_KEY=your-secret-key-here
+JWT_SECRET_KEY=your-jwt-secret-key-here
+```
+
+### 3. Start Services
+
+**Terminal 1 - PostgreSQL:**
+```bash
+# Ensure PostgreSQL is running
+# Windows: Check Services
+# macOS/Linux:
+brew services start postgresql  # macOS
+sudo systemctl start postgresql # Linux
+```
+
+**Terminal 2 - Redis:**
+```bash
+# Windows:
+redis-server
+# macOS:
+brew services start redis
+# Linux:
+sudo systemctl start redis
+```
+
+### 4. Initialize Database
+
+```bash
+# Create database
+createdb insurance_db
+
+# Run migrations
+flask db upgrade
+```
+
+### 5. Run Application
+
+**Terminal 3 - Flask Server:**
+```bash
+python wsgi.py
+# Server runs on http://localhost:5000
+```
+
+**Terminal 4 - Celery Worker:**
+```bash
+celery -A celery_worker.celery worker --loglevel=info
+```
+
+### 6. Generate Test Images
+Use "gen docs.ipynb" to generate the images required for using and testing OCR modules.
+It generates a set of random images for testing purposes.  
+
+
+## API Endpoints
+
+### Claims Management
+- `POST /api/claims` - Create new claim
+- `GET /api/claims` - List all claims
+- `GET /api/claims/{id}` - Get claim details
+- `PATCH /api/claims/{id}` - Update claim status
+
+### Document Processing
+- `POST /api/claims/{id}/documents` - Upload document
+- `GET /api/claims/{id}/documents` - List claim documents
+
+### Simulation
+- `POST /api/simulate/claim` - Simulate claim processing
 
 ## Project Structure
 
 ```
-my_service/
+Backend/
 ├── app/
-│   ├── __init__.py              # Application factory
-│   ├── config.py                # Environment configs
-│   ├── database.py              # DB session management
-│   ├── schemas.py               # Data validation schemas
-│   ├── utils.py                 # Utility functions
-│   ├── models/
-│   │   ├── __init__.py          # Import db here
-│   │   └── user.py              # User model
-│   └── routes/
-│       ├── __init__.py
-│       ├── auth.py              # Login, register endpoints
-│       └── users.py             # User CRUD endpoints
-├── migrations/                  # Database migrations (future)
-├── tests/                       # Test files (future)
-├── requirements.txt             # Python dependencies
-├── wsgi.py                      # WSGI entry point
-└── README.md                    # This file
+│   ├── agents/          # AI agents for validation
+│   ├── models/          # SQLAlchemy models
+│   ├── ocr/             # OCR pipeline
+│   ├── routes/          # API endpoints
+│   ├── tasks/           # Celery tasks
+│   └── utils/           # Helper functions
+├── migrations/          # Alembic migrations
+├── logs/               # Application logs
+├── wsgi.py             # Application entry point
+└── celery_worker.py    # Celery worker entry point
 ```
 
-## Installation & Setup
+## Development
 
-### 1. Clone or Navigate to Project Directory
+### Running Tests
 
 ```bash
-cd /path/to/my_service
+# Install test dependencies
+pip install pytest pytest-cov
+
+# Run tests with coverage
+pytest --cov=app --cov-report=html
+
+# View coverage report
+open htmlcov/index.html
 ```
 
-### 2. Create Virtual Environment
+### Database Migrations
 
 ```bash
-python3.10 -m venv venv
+# Create new migration
+alembic revision --autogenerate -m "description"
+
+# Apply migrations
+alembic upgrade head
+
+# Rollback migration
+alembic downgrade -1
 ```
 
-### 3. Activate Virtual Environment
 
-- **macOS/Linux**:
-  ```bash
-  source venv/bin/activate
-  ```
-- **Windows**:
-  ```bash
-  venv\Scripts\activate
-  ```
 
-### 4. Install Dependencies
+## Configuration
 
-```bash
-pip install -r requirements.txt
-```
+### Environment Variables
 
-### 5. Set Environment Variables (Optional)
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `FLASK_ENV` | Environment mode | `development` |
+| `DATABASE_URL` | PostgreSQL connection string | Required |
+| `CELERY_BROKER_URL` | Redis URL for Celery | `redis://localhost:6379/0` |
+| `SECRET_KEY` | Flask secret key | Required in production |
+| `JWT_SECRET_KEY` | JWT signing key | Required in production |
+| `ALLOWED_ORIGINS` | CORS allowed origins | `http://localhost:3000` |
 
-Create a `.env` file in the project root (optional):
+### Policy Configuration
 
-```bash
-# .env
-FLASK_ENV=development
-SECRET_KEY=your-secret-key-here
-JWT_SECRET_KEY=your-jwt-secret-key-here
-DEV_DATABASE_URL=sqlite:///dev.db
-```
-
-If not set, the application will use default development values.
-
-## Running the Application
-
-### Development Mode
-
-```bash
-flask --app wsgi run --debug
-```
-
-Or:
-
-```bash
-python wsgi.py
-```
-
-The application will start at `http://127.0.0.1:5000`
-
-### Production Mode
-
-```bash
-export FLASK_ENV=production
-gunicorn -w 4 -b 0.0.0.0:8000 wsgi:app
-```
-
-Note: For production, you'll need to install gunicorn:
-```bash
-pip install gunicorn
-```
-
-## API Endpoints
-
-### Authentication
-
-- **POST** `/api/auth/register` - Register new user
-  ```json
-  {
-    "username": "john_doe",
-    "email": "john@example.com",
-    "password": "password123"
-  }
-  ```
-
-- **POST** `/api/auth/login` - Login user
-  ```json
-  {
-    "email": "john@example.com",
-    "password": "password123"
-  }
-  ```
-
-### Users (Protected - Requires JWT Token)
-
-- **GET** `/api/users/` - Get all users (paginated)
-- **GET** `/api/users/me` - Get current user
-- **GET** `/api/users/<user_id>` - Get specific user
-- **PUT** `/api/users/<user_id>` - Update user
-- **DELETE** `/api/users/<user_id>` - Delete user
-
-### Authentication Header
-
-For protected endpoints, include the JWT token in the Authorization header:
-
-```
-Authorization: Bearer <your_access_token>
-```
-
-## Testing the API
-
-### Using curl
-
-#### Register a user:
-```bash
-curl -X POST http://127.0.0.1:5000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"username":"testuser","email":"test@example.com","password":"password123"}'
-```
-
-#### Login:
-```bash
-curl -X POST http://127.0.0.1:5000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"password123"}'
-```
-
-#### Get current user (with token):
-```bash
-curl -X GET http://127.0.0.1:5000/api/users/me \
-  -H "Authorization: Bearer <your_access_token>"
-```
-
-## Database
-
-By default, the application uses SQLite database (`dev.db`) in development mode. The database file will be created automatically when you first run the application.
+Edit `app/utils/policy_terms.json` to configure insurance policy rules and validation criteria.
 
 ## Troubleshooting
 
-### Port Already in Use
-If port 5000 is already in use, specify a different port:
+**Database Connection Error:**
 ```bash
-flask --app wsgi run --port 5001
+# Verify PostgreSQL is running
+psql -U postgres -c "SELECT version();"
 ```
 
-### Database Errors
-Delete the database file and restart:
+**Redis Connection Error:**
 ```bash
-rm dev.db
-python wsgi.py
+# Test Redis connection
+redis-cli ping
+# Should return: PONG
 ```
 
-### Module Not Found Errors
-Ensure virtual environment is activated and dependencies are installed:
+**Tesseract Not Found:**
 ```bash
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-pip install -r requirements.txt
+# Verify installation
+tesseract --version
+
+# Windows: Add to PATH
+# C:\Program Files\Tesseract-OCR
 ```
 
-## Next Steps
+**Celery Tasks Not Processing:**
+```bash
+# Check Redis connection
+redis-cli ping
 
-- Add unit tests in the `tests/` directory
-- Implement database migrations using Flask-Migrate
-- Add API documentation using Flask-RESTX or Swagger
-- Configure production database (PostgreSQL, MySQL)
-- Set up proper logging and error handling
-- Add rate limiting and CORS configuration
+# Restart Celery worker
+celery -A celery_worker.celery worker --loglevel=debug
+```
 
-## License
+## Production Deployment
 
-This project is for educational purposes.
+### Environment Setup
+
+```bash
+export FLASK_ENV=production
+export DATABASE_URL=postgresql://user:pass@host:5432/dbname
+export SECRET_KEY=$(python -c 'import secrets; print(secrets.token_hex(32))')
+export JWT_SECRET_KEY=$(python -c 'import secrets; print(secrets.token_hex(32))')
+```

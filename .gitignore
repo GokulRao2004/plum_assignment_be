@@ -39,6 +39,7 @@ htmlcov/
 
 # Logs
 *.log
+logs/
 
 # dotenv
 .env.local
@@ -52,3 +53,8 @@ __pypackages__/
 
 # Instance folder used by Flask
 instance/
+
+uploads/
+
+*.md
+~./README.md

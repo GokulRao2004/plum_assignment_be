@@ -27,5 +27,4 @@ def init_db(app):
         from app.models.claim_document import ClaimDocument
         from app.models.claim_trace import ClaimTrace
         
-        
         return db

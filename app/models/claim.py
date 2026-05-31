@@ -24,6 +24,7 @@ class Claim(db.Model):
 
     id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
     external_id = Column(String(64), nullable=True)
+    policy_id = Column(String(64), nullable=False)
 
     member_id = Column(String(32), nullable=False)
     patient_name = Column(String(128), nullable=True)
@@ -37,6 +38,7 @@ class Claim(db.Model):
     claimed_amount = Column(Numeric(12, 2), nullable=False)
     hospital_name = Column(String(256), nullable=True)
     is_network_hospital = Column(Boolean, nullable=False, default=False)
+    pre_auth_present = Column(Boolean, nullable=False, default=False)
 
     status = Column(String(32), nullable=False, default="PENDING")
 
