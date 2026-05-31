@@ -9,6 +9,7 @@ A Flask-based backend system for automated insurance claims processing with OCR 
 - **Redis**: 6+
 - **Tesseract OCR**: 4.0+
 - **Poppler**: (for PDF processing)
+- **RXNCONSO.RRF** : Download the dataset from google and add the file to ./reference_data/rxnorm_extracted/ 
 
 
 ## Quick Start
